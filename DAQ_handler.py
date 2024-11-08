@@ -4,7 +4,7 @@ import asyncio
 import websockets
 
 
-async def send_data_server(uri, data):
+async def send_data_server(uri, packet):
     async with websockets.connect(uri) as websocket:
         await websocket.send(data)
         print(f"Sent data: {data}")
@@ -15,7 +15,7 @@ def setup_daq_serial(protocol_id):
         daq_serial.open_serial() # 시리얼 포트 열기
         daq_serial.set_command(protocol_id) # 명령 설정 (데이터 요청)
         daq_serial.send_request(protocol_id) # 데이터 요청 전송
-    except exception as e:
+    except Exception as e:
         print(f"Error setting up DAQ serial: {e}")
         return None
     return daq_serial
@@ -39,10 +39,6 @@ async def read_data(daq_serial, server_uri):
     finally:
         # 시리얼 통신 닫기
         daq_serial.close_serial()  # 종료 시 시리얼 포트 닫기
-
-#
-if __name__ == "__main__":
-    asyncio.run(read_data(daq_serial, server_uri))
 
 
 """
