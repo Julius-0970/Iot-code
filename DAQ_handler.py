@@ -20,7 +20,7 @@ def setup_daq_serial(protocol_id):
         return None
     return daq_serial
 
-def read_data(daq_serial, server_uri):
+async def read_data(daq_serial, server_uri):
     try:
         # 무한 루프를 통해 데이터 수신 대기
         while True:
@@ -31,11 +31,15 @@ def read_data(daq_serial, server_uri):
                 if data :
                     await send_data_server(server_uri, data)
             await asyncio.sleep(1)
-    except exception as e:
+    except Exception as e:
         print(f"Error in reading data: {e}")
     finally:
         # 시리얼 통신 닫기
         daq_serial.close_serial()  # 종료 시 시리얼 포트 닫기
+
+#
+if__name__ == "__main__":
+    asyncio.run(read_data(daq_serial, server_uri))
 
 
 """

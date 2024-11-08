@@ -2,9 +2,14 @@
 
 # DAQ_serial 모듈에서 DaqSerial 클래스와 호흡 데이터 요청 프로토콜 ID 상수 가져오기
 from DAQ_Serial import DaqSerial, RASPI_PROTOCOL_TO_DAQ_CMD_ID_REQ_TEMPERATURE
-from daq_handler import setup_daq_serial, read_data
+from DAQ_handler import setup_daq_serial, read_data
+import asyncio
 
+server_uri ="wss://port-0-iot-healthcare-1272llwukgaeg.sel5.cloudtype.app/ws/body_temp"
 # DaqSerial 인스턴스 생성 및 시리얼 통신 열기
 daq_serial = setup_daq_serial(RASPI_PROTOCOL_TO_DAQ_CMD_ID_REQ_TEMPERATURE)
 # 실제로 데이터를 읽어오는 로직
-read_data(daq_serial)
+read_data(daq_serial, server_uri)
+
+if__main__=="__main__":
+    asyncio.run(main())
