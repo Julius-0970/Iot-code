@@ -26,10 +26,13 @@ async def read_data(daq_serial, server_uri):
         while True:
             daq_serial.on_ready_read()  # 데이터가 준비되면 읽기
             if not daq_serial.data_queue.empty():
-                packet = daq_serial.data_queue.get()
+                packet = daq_serial.data_queue.get()\
+                """
                 data = parsed_data(packet)
                 if data :
                     await send_data_server(server_uri, data)
+                    """
+                await send_data_server(server_uri, data)
             await asyncio.sleep(1)
     except Exception as e:
         print(f"Error in reading data: {e}")
@@ -38,7 +41,7 @@ async def read_data(daq_serial, server_uri):
         daq_serial.close_serial()  # 종료 시 시리얼 포트 닫기
 
 #
-if__name__ == "__main__":
+if __name__ == "__main__":
     asyncio.run(read_data(daq_serial, server_uri))
 
 
