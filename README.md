@@ -28,8 +28,6 @@
 
 ## 🏗 시스템 아키텍처
 
-![System Architecture](docs/architecture.svg)
-
 ```
 ┌──────────────────┐   UART /dev/ttyAMA0   ┌──────────────────────┐   WebSocket (wss://)   ┌──────────────────────┐
 │   Healthcare DAQ │ ─────────────────────► │     Raspberry Pi     │ ──────────────────────► │    FastAPI Server    │
@@ -44,8 +42,6 @@ DAQ 장비에서 출력된 바이너리 패킷은 UART 시리얼 통신(`/dev/tt
 <br>
 
 ## 📦 패킷 구조
-
-![Packet Structure](docs/packet_structure.svg)
 
 ### 송신 패킷
 
@@ -71,7 +67,6 @@ GUI에서 센서를 선택하면 6바이트 패킷을 DAQ 장비로 전송합니
 
 ## 🔍 패킷 파싱 구조
 
-![Parsing Flow](docs/parsing_flow.svg)
 
 ### SOP / EOP 기반 경계 탐지
 
@@ -140,10 +135,6 @@ Tkinter의 메인 스레드 블로킹을 방지하기 위해 별도 스레드에
 ```
 ├── app.py              # Tkinter GUI 진입점
 ├── DAQ_Serial.py       # 시리얼 통신 및 WebSocket 전송 클래스
-├── docs/
-│   ├── architecture.svg
-│   ├── packet_structure.svg
-│   └── parsing_flow.svg
 ├── *.png               # 센서 버튼 이미지 (선택적)
 └── app.log             # 실행 로그 (자동 생성)
 ```
