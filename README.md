@@ -20,7 +20,7 @@
 
 ```
 ├── DAQ_Serial.py       # 시리얼 통신 및 WebSocket 전송 클래스
-├── main.py             # Tkinter GUI 진입점
+├── app.py             # Tkinter GUI 진입점
 ├── *.png               # 센서 버튼 이미지 (선택적)
 └── app.log             # 실행 로그 (자동 생성)
 ```
