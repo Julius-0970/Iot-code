@@ -30,13 +30,9 @@ RASPI_PROTOCOL_TO_DAQ_CMD_ID_RES_GSR = 0x82
 RASPI_PROTOCOL_TO_DAQ_CMD_ID_RES_TEMPERATURE = 0xA2
 
 class DaqSerial:
+    # 초기화
     def __init__(self, event_loop=None):
-        """
-        DaqSerial 클래스 초기화.
-        시리얼 포트를 설정하고 기본 명령어를 전송 정지로 초기화합니다.
 
-        :param event_loop: asyncio 이벤트 루프
-        """
         # 기본 명령어를 전송 정지로 설정
         self.command = RASPI_PROTOCOL_TO_DAQ_CMD_ID_REQ_STOP
 
@@ -54,37 +50,26 @@ class DaqSerial:
                 bytesize=serial.EIGHTBITS,      # 데이터 비트 설정
                 parity=serial.PARITY_NONE,      # 패리티 비트 없음
                 stopbits=serial.STOPBITS_ONE    # 스톱 비트 설정
-                # timeout=1                      # 타임아웃 설정 (초)
+                # timeout=1                      # 타임아웃 설정
             )
             logging.info("시리얼 포트 초기화 완료.")
         except serial.SerialException as e:
             logging.error(f"시리얼 포트 초기화 오류: {e}")
             self.serial_port = None
 
+    # 명령어 설정, 수신 패킷 초기화
     def set_command(self, command):
-        """
-        전송할 명령어를 설정하고 수신 패킷을 초기화합니다.
-
-        :param command: 설정할 명령어 ID
-        """
         self.command = command
         self.receive_packet.clear()  # 이전 패킷을 비워줌
         logging.info(f"명령어 설정됨: {hex(command)}")
 
+    # 설정 명령어(ID) 조회
     def get_command(self):
-        """
-        현재 설정된 명령어를 반환합니다.
-
-        :return: 현재 명령어 ID
-        """
         logging.debug(f"현재 명령어 조회: {hex(self.command)}")
         return self.command
 
+    # 포트 open
     def open_serial(self):
-        """
-        시리얼 포트를 여는 함수.
-        이미 열려 있으면 상태만 출력하고, 아니라면 열기를 시도합니다.
-        """
         if self.serial_port and self.serial_port.is_open:
             logging.info("시리얼 포트가 이미 열려 있습니다.")
         elif self.serial_port:
@@ -99,12 +84,8 @@ class DaqSerial:
         else:
             logging.error("시리얼 포트가 초기화되지 않았습니다.")
 
+    # 패킷 전송
     def send_request(self, command):
-        """
-        명령어에 따른 패킷을 생성하여 시리얼 포트로 전송합니다.
-
-        :param command: 전송할 명령어 ID
-        """
         if self.serial_port and self.serial_port.is_open:
             packet = bytearray([
                 RASPI_PROTOCOL_TO_DAQ_SOP,  # SOP 추가
@@ -122,10 +103,8 @@ class DaqSerial:
         else:
             logging.error("시리얼 포트가 열려 있지 않아 패킷을 전송할 수 없습니다.")
 
+    # 포트 close
     def close_serial(self):
-        """
-        시리얼 포트를 닫는 함수.
-        """
         if self.serial_port and self.serial_port.is_open:
             try:
                 self.serial_port.close()  # 시리얼 포트 닫기
@@ -135,14 +114,8 @@ class DaqSerial:
         else:
             logging.warning("시리얼 포트가 이미 닫혀 있습니다.")
 
+    # 비동기 전송 함수 ( 사용자 이름, 명령어 ID, 서버 url )
     async def read_and_send(self, device_id, user_name, req_cmd, server_uri):
-        """
-        데이터를 시리얼에서 읽고, 읽은 데이터를 서버로 전송하는 비동기 함수.
-
-        :param user_name: 사용자 이름
-        :param req_cmd: 요청 명령어 ID
-        :param server_uri: 서버의 WebSocket URI
-        """
         if not device_id:
             logging.warning("디바이스 정보가 넘어오지 않았습니다.")
             return 
@@ -180,6 +153,7 @@ class DaqSerial:
                         )
                         buffer.extend(data)
 
+                        # sop = 시작, eop = 끝.
                         # 버퍼에서 SOP와 EOP 기준으로 패킷 추출
                         while True:
                             # SOP 위치 찾기
