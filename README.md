@@ -8,7 +8,7 @@
 
 병원 및 연구 환경에서 사용되는 헬스케어 DAQ(Data Acquisition) 장비는 ECG, EMG 등 다양한 생체신호를 측정합니다. 해당 장비의 통신 프로토콜은 원래 C++로 작성되어 있었으나, **C++ 환경 없이 Python만으로 동일한 동작을 구현하기 위해 C++ 바이너리 프로토콜을 직접 분석하고 Python으로 재설계**했습니다.
 
-재구현한 클라이언트는 Raspberry Pi 위에서 동작하며, 수집한 데이터를 WebSocket을 통해 FastAPI 서버로 실시간 전달합니다. 현장에서 의료진이 간편하게 센서를 선택하고 데이터를 즉시 수집할 수 있도록 **Tkinter GUI**도 함께 제공합니다.
+재구현한 클라이언트는 헬스케어 장비 내부의 Raspberry Pi 위에서 동작하며, 수집한 데이터를 WebSocket을 통해 FastAPI 서버로 실시간 전달합니다. 현장에서 의료진이 간편하게 센서를 선택하고 데이터를 즉시 수집할 수 있도록 **Tkinter GUI**도 함께 제공합니다.
 
 <br>
 
@@ -29,9 +29,9 @@
 ## 🏗 시스템 아키텍처
 
 ```
-┌──────────────────┐   UART /dev/ttyAMA0   ┌──────────────────────┐   WebSocket (wss://)   ┌──────────────────────┐
+┌──────────────────┐   UART /dev/ttyAMA0    ┌──────────────────────┐    WebSocket (wss://)   ┌──────────────────────┐
 │   Healthcare DAQ │ ─────────────────────► │     Raspberry Pi     │ ──────────────────────► │    FastAPI Server    │
-│  (C++ Firmware)  │      115200 baud       │  DAQ_Serial.py       │                         │ /ws/{user}/{sensor}  │
+│  (   python   )  │      115200 baud       │  DAQ_Serial.py       │                         │ /ws/{user}/{sensor}  │
 │  [SOP|CMD|DATA   │                        │  app.py (Tkinter)    │                         │                      │
 │       |EOP]      │                        │                      │                         │                      │
 └──────────────────┘                        └──────────────────────┘                         └──────────────────────┘
