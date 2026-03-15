@@ -28,47 +28,95 @@
 
 ## 🏗 시스템 아키텍처
 
+![System Architecture](docs/architecture.svg)
+
 ```
-┌──────────────────┐     UART/Serial      ┌──────────────────────┐
-│  Healthcare DAQ  │ ──────────────────►  │    Raspberry Pi      │
-│  (C++ Firmware)  │    /dev/ttyAMA0      │                      │
-│                  │    115200 baud       │  ┌────────────────┐  │
-│  Binary Packet   │                      │  │  DAQ_Serial.py │  │
-│  [SOP|CMD|DATA   │                      │  │  - 패킷 파싱    │  │
-│      |EOP]       │                      │  │  - 버퍼 관리    │  │
-└──────────────────┘                      │  └───────┬────────┘  │
-                                          │          │ asyncio   │
-                                          │  ┌───────▼────────┐  │
-                                          │  │    app.py      │  │
-                                          │  │  - Tkinter GUI │  │
-                                          │  │  - 센서 선택    │  │
-                                          │  └───────┬────────┘  │
-                                          └──────────┼───────────┘
-                                                     │ WebSocket (wss://)
-                                                     ▼
-                                          ┌──────────────────────┐
-                                          │   FastAPI Server     │
-                                          │  /ws/{user}/{sensor} │
-                                          └──────────────────────┘
+┌──────────────────┐   UART /dev/ttyAMA0   ┌──────────────────────┐   WebSocket (wss://)   ┌──────────────────────┐
+│   Healthcare DAQ │ ─────────────────────► │     Raspberry Pi     │ ──────────────────────► │    FastAPI Server    │
+│  (C++ Firmware)  │      115200 baud       │  DAQ_Serial.py       │                         │ /ws/{user}/{sensor}  │
+│  [SOP|CMD|DATA   │                        │  app.py (Tkinter)    │                         │                      │
+│       |EOP]      │                        │                      │                         │                      │
+└──────────────────┘                        └──────────────────────┘                         └──────────────────────┘
 ```
+
+DAQ 장비에서 출력된 바이너리 패킷은 UART 시리얼 통신(`/dev/ttyAMA0`, 115200 baud)을 통해 Raspberry Pi로 전달됩니다. `DAQ_Serial.py`에서 패킷을 파싱하고, `app.py`의 Tkinter GUI를 통해 사용자가 선택한 센서 데이터를 WebSocket으로 FastAPI 서버에 실시간 전송합니다.
 
 <br>
 
 ## 📦 패킷 구조
 
-DAQ 장비와의 통신은 다음 바이너리 프로토콜을 따릅니다.
+![Packet Structure](docs/packet_structure.svg)
+
+### 송신 패킷
+
+GUI에서 센서를 선택하면 6바이트 패킷을 DAQ 장비로 전송합니다.
+
+| 필드 | 값 | 설명 |
+|------|----|------|
+| SOP | `0xF7` | 패킷 시작 마커 |
+| CMD | 명령어 ID | 요청할 센서 종류 |
+| DATA | `0x00` × 3 | 예약 필드 |
+| EOP | `0xFA` | 패킷 종료 마커 |
+
+### 수신 패킷
+
+수신 패킷은 데이터 종류에 따라 길이가 달라집니다.
+
+| 길이 | 구분 | 해당 센서 |
+|------|------|----------|
+| 10 bytes | 정형 데이터 (수치형) | NIBP, SPO2, TEMP |
+| 86 bytes | 비정형 데이터 (파형) | ECG, EMG, EOG, GSR, AIRFLOW |
+
+<br>
+
+## 🔍 패킷 파싱 구조
+
+![Parsing Flow](docs/parsing_flow.svg)
+
+### SOP / EOP 기반 경계 탐지
+
+버퍼에 수신 데이터를 누적한 뒤, SOP(`0xF7`)와 EOP(`0xFA`)를 기준으로 패킷 경계를 탐지하여 추출합니다.
+
+```python
+# SOP 탐색
+sop_index = buffer.find(0xF7)
+
+# SOP 이후 EOP 탐색
+eop_index = buffer.find(0xFA, sop_index)
+
+# 패킷 추출 및 버퍼 정리
+packet = buffer[sop_index:eop_index + 1]
+del buffer[:eop_index + 1]
+```
+
+### 길이 기반 데이터 분류
+
+```python
+if len(packet) == 10:    # 정형 — 수치형 센서값
+    await websocket.send(packet)
+elif len(packet) == 86:  # 비정형 — ECG, EMG 등 파형
+    await websocket.send(packet)
+else:
+    logging.warning(f"잘못된 패킷 길이: {len(packet)}")
+```
+
+### 비동기 수신 흐름
+
+Tkinter의 메인 스레드 블로킹을 방지하기 위해 별도 스레드에서 asyncio 이벤트 루프를 실행합니다.
 
 ```
-┌────────┬──────────┬────────────────┬────────┐
-│  SOP   │   CMD    │    DATA        │  EOP   │
-│ 0xF7   │  1 byte  │    3 bytes     │ 0xFA   │
-└────────┴──────────┴────────────────┴────────┘
+[ Tkinter Main Thread ]
+        │
+        │  asyncio.run_coroutine_threadsafe()
+        ▼
+[ asyncio Event Loop Thread ]
+        │
+        ├── serial.read()  ──►  buffer에 누적
+        │                            │
+        │                    SOP/EOP 탐지 → 패킷 추출
+        │                            │
+        └── websocket.send(packet) ◄─┘
 ```
-
-수신 패킷은 두 가지 길이를 지원합니다.
-
-- **10 bytes** : 정형 데이터 (수치형 센서값)
-- **86 bytes** : 비정형 데이터 (파형 데이터 등)
 
 <br>
 
@@ -92,125 +140,13 @@ DAQ 장비와의 통신은 다음 바이너리 프로토콜을 따릅니다.
 ```
 ├── app.py              # Tkinter GUI 진입점
 ├── DAQ_Serial.py       # 시리얼 통신 및 WebSocket 전송 클래스
+├── docs/
+│   ├── architecture.svg
+│   ├── packet_structure.svg
+│   └── parsing_flow.svg
 ├── *.png               # 센서 버튼 이미지 (선택적)
 └── app.log             # 실행 로그 (자동 생성)
 ```
-
-<br>
-
-## 🔍 패킷 파싱 구조
-
-### 1. 송신 패킷 — 센서 요청
-
-GUI에서 센서를 선택하면 아래 구조의 패킷을 DAQ 장비로 전송합니다.
-
-```
-Index  [ 0  |  1  |  2  |  3  |  4  |  5  ]
-Value  [0xF7| CMD |0x00 |0x00 |0x00 |0xFA ]
-        SOP   명령  ←── 예약 필드(3 bytes) ──►  EOP
-```
-
-예시 — ECG 요청 시 전송되는 패킷:
-
-```python
-packet = bytearray([0xF7, 0x11, 0x00, 0x00, 0x00, 0xFA])
-#                   SOP   ECG  data  data  data   EOP
-serial_port.write(packet)
-```
-
----
-
-### 2. 수신 패킷 — 센서 응답
-
-DAQ 장비로부터 수신한 데이터는 버퍼에 누적한 뒤, SOP(`0xF7`)와 EOP(`0xFA`)를 기준으로 패킷 경계를 탐지합니다.
-
-```python
-# 버퍼에서 SOP 탐색
-sop_index = buffer.find(0xF7)
-
-# SOP 이후 EOP 탐색
-eop_index = buffer.find(0xFA, sop_index)
-
-# 패킷 추출 및 버퍼에서 제거
-packet = buffer[sop_index:eop_index + 1]
-del buffer[:eop_index + 1]
-```
-
----
-
-### 3. 패킷 길이에 따른 데이터 분류
-
-수신 패킷은 데이터 종류에 따라 길이가 달라집니다.
-
-```
-■ 정형 데이터 (10 bytes) — 수치형 센서값
-┌──────┬─────┬──────────────────────┬──────┐
-│ 0xF7 │ CMD │   DATA  (7 bytes)    │ 0xFA │
-└──────┴─────┴──────────────────────┴──────┘
-
-■ 비정형 데이터 (86 bytes) — ECG/EMG 등 파형 데이터
-┌──────┬─────┬──────────────────────┬──────┐
-│ 0xF7 │ CMD │   DATA  (83 bytes)   │ 0xFA │
-└──────┴─────┴──────────────────────┴──────┘
-```
-
-```python
-if len(packet) == 10:    # 정형 — NIBP, SPO2, TEMP 등
-    await websocket.send(packet)
-elif len(packet) == 86:  # 비정형 — ECG, EMG, EOG 등 파형
-    await websocket.send(packet)
-else:
-    logging.warning(f"잘못된 패킷 길이: {len(packet)}")
-```
-
----
-
-### 4. 비동기 수신 흐름
-
-시리얼 수신과 WebSocket 전송은 `asyncio`로 처리하며, Tkinter GUI 블로킹을 방지하기 위해 별도 스레드에서 이벤트 루프를 실행합니다.
-
-```
-[ Tkinter Main Thread ]
-        │
-        │  asyncio.run_coroutine_threadsafe()
-        ▼
-[ asyncio Event Loop Thread ]
-        │
-        ├── serial.read()  ──►  buffer에 누적
-        │                            │
-        │                    SOP/EOP 탐지 및 패킷 추출
-        │                            │
-        └── websocket.send(packet) ◄─┘
-```
-
-<br>
-
-## 🖥️ 사용 방법
-
-```
-┌──────────────────────────────────────────────┐
-│  실시간 데이터 수집                        [✖] │
-├──────────────────────────────────────────────┤
-│                                              │
-│  사용자 Email  [ user@example.com          ] │
-│                                              │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌──────┐  │
-│  │  ECG   │ │  EMG   │ │  EOG   │ │ NIBP │  │
-│  └────────┘ └────────┘ └────────┘ └──────┘  │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌──────┐  │
-│  │  SPO2  │ │AIRFLOW │ │  GSR   │ │ TEMP │  │
-│  └────────┘ └────────┘ └────────┘ └──────┘  │
-│                                              │
-│  🔵 ECG 데이터를 전송 중입니다...              │
-└──────────────────────────────────────────────┘
-```
-
-1. **사용자 Email** 입력
-2. 원하는 **센서 버튼** 클릭 → 데이터 수집 및 전송 시작
-3. 동일 버튼 재클릭 → 전송 중단
-4. 다른 센서 버튼 클릭 → 전환 여부 확인 후 전환
-
-> 센서 이미지 파일(`ecg.png` 등)이 없어도 텍스트 버튼으로 정상 동작합니다.
 
 <br>
 
