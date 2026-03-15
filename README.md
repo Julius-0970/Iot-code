@@ -7,7 +7,7 @@
 ## 📌 프로젝트 개요
 
 ```
-[헬스케어 DAQ 장비] --Serial(UART)--> [Raspberry Pi] --WebSocket--> [FastAPI 서버]
+[헬스케어 DAQ 장비] --Serial(UART)--> [Raspberry Pi] --WebSocket--> [FastAPI 서버] ---> 메인 서버 및 웹페이지
 ```
 
 - DAQ 장비에서 생체신호 데이터를 Serial(UART) 통신으로 수신
