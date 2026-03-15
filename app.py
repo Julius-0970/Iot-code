@@ -1,4 +1,3 @@
-# 필요한 라이브러리 임포트
 from tkinter import PhotoImage
 import tkinter as tk
 from PIL import Image, ImageTk  # 이미지 처리를 위해 PIL 사용
@@ -13,11 +12,11 @@ from getmac import get_mac_address  # MAC 주소를 가져오기 위해 사용
 
 # 로깅 설정
 logging.basicConfig(
-    level=logging.DEBUG,  # 로그 레벨을 DEBUG로 설정
-    format='%(asctime)s - %(levelname)s - %(message)s',  # 로그 출력 형식 설정
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler("app.log"),  # 로그를 파일로 저장
-        logging.StreamHandler()  # 콘솔에도 로그 출력
+        logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
@@ -104,7 +103,7 @@ status_label.pack(pady=10)  # 상태 라벨 배치
 sensor_frame = tk.Frame(root)  # 센서 버튼을 담을 프레임 생성
 sensor_frame.pack(pady=10, fill="both", expand=True)  # 프레임 배치
 
-# 메시지박스 표시 함수 (스레드 안전하게)
+# 메시지박스 표시 함수
 def show_info(title, message):
     root.after(0, lambda: messagebox.showinfo(title, message))  # 정보 메시지 표시
 
