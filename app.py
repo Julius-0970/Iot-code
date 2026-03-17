@@ -116,7 +116,7 @@ def show_sensor_buttons():
     button_images = {}  # 버튼 이미지 저장용 딕셔너리
     max_columns = 4  # 최대 열 개수
 
-    for sensor_name in sensor_uri_mapping.keys():  # 센서 이름에 대해 반복
+    for sensor_name in sensor_command_mapping.keys():  # 센서 이름에 대해 반복
         try:
             image_path = os.path.join(script_dir, f"{sensor_name.lower()}.png")  # 이미지 경로 설정
             orig_image = Image.open(image_path)  # 이미지 파일 열기
