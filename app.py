@@ -187,18 +187,10 @@ def on_sensor_button_click(sensor_name):
             )
             if user_response:
                 current_task.cancel()  # 현재 작업 취소
-                try:
-                    current_task.result()  # 작업 결과 가져오기
-                    logger.info(f"기존 작업({current_sensor}) 중단 완료.")  # 작업 중단 완료 로그
-                except asyncio.CancelledError:
-                    logger.info(f"기존 작업({current_sensor})이 성공적으로 취소되었습니다.")  # 작업 취소 성공 로그
-                except Exception as e:
-                    logger.error(f"기존 작업 중단 중 오류 발생: {e}")  # 작업 중단 중 오류 발생 시 로그 기록
-                finally:
-                    daq_serial_instance.close_serial()  # 시리얼 포트 닫기
-                    logger.info("closed serial")  # 시리얼 포트 닫힘 로그
-                    current_task = None
-                    current_sensor = None
+                daq_serial_instance.close_serial()  # 시리얼 포트 닫기
+                logger.info("closed serial")  # 시리얼 포트 닫힘 로그
+                current_task = None
+                current_sensor = None
                 return
             else:
                 return
@@ -209,18 +201,10 @@ def on_sensor_button_click(sensor_name):
             )
             if user_response:
                 current_task.cancel()  # 현재 작업 취소
-                try:
-                    current_task.result()  # 작업 결과 가져오기
-                    logger.info(f"기존 작업({current_sensor}) 중단 완료.")  # 작업 중단 완료 로그
-                except asyncio.CancelledError:
-                    logger.info(f"기존 작업({current_sensor})이 성공적으로 취소되었습니다.")  # 작업 취소 성공 로그
-                except Exception as e:
-                    logger.error(f"기존 작업 중단 중 오류 발생: {e}")  # 작업 중단 중 오류 발생 시 로그 기록
-                finally:
-                    daq_serial_instance.close_serial()  # 시리얼 포트 닫기
-                    logger.info("closed serial")  # 시리얼 포트 닫힘 로그
-                    current_task = None
-                    current_sensor = None
+                daq_serial_instance.close_serial()  # 시리얼 포트 닫기
+                logger.info("closed serial")  # 시리얼 포트 닫힘 로그
+                current_task = None
+                current_sensor = None
             else:
                 return
 
