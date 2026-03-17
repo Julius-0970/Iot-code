@@ -5,7 +5,7 @@ from tkinter import messagebox  # 메시지 박스 사용
 from DAQ_Serial import *  # DAQ 시리얼 관련 클래스 임포트
 import asyncio  # 비동기 처리를 위해 asyncio 사용
 import threading  # 멀티스레드 처리를 위해 threading 사용
-import websockets  # 웹소켓 통신을 위해 websockets 사용
+# import websockets  # 웹소켓 통신을 위해 websockets 사용
 import logging  # 로깅 모듈 추가
 import os  # 파일 경로 처리를 위해 os 사용
 from getmac import get_mac_address  # MAC 주소를 가져오기 위해 사용
@@ -22,7 +22,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 센서 명령어 매핑
-densor_command_mapping = {
+sensor_command_mapping = {
     "AIRFLOW": RASPI_PROTOCOL_TO_DAQ_CMD_ID_REQ_AIR_FLOW,  # 공기 흐름 센서 요청 명령어
     "ECG": RASPI_PROTOCOL_TO_DAQ_CMD_ID_REQ_ECG,  # 심전도 데이터 요청 명령어
     "EOG": RASPI_PROTOCOL_TO_DAQ_CMD_ID_REQ_EOG,  # 안구전위 데이터 요청 명령어
