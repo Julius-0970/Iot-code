@@ -139,8 +139,6 @@ class DaqSerial:
                 logging.info(f"사용자 이름 전송됨: {user_name}")
                 
                 while True:
-                    if exit_ == True:
-                        break
                     if not self.serial_port:
                         logging.warning("시리얼 포트가 열려 있지 않습니다.")
                         continue
@@ -160,7 +158,6 @@ class DaqSerial:
                             sop_index = buffer.find(RASPI_PROTOCOL_TO_DAQ_SOP)
                             if sop_index == -1:
                                 # SOP가 없으면 패킷 처리 중단
-                                exit_ = True
                                 logging.info("SOP를 찾을 수 없습니다.")
                                 break
 
@@ -168,7 +165,6 @@ class DaqSerial:
                             eop_index = buffer.find(RASPI_PROTOCOL_TO_DAQ_EOP, sop_index)
                             if eop_index == -1:
                                 # EOP가 없으면 패킷 처리 중단
-                                exit_ = True
                                 logging.info("EOP를 찾을 수 없습니다.")
                                 break
 
@@ -189,7 +185,7 @@ class DaqSerial:
                                 logging.warning(f"잘못된 패킷 길이: {len(packet)}, 내용: {packet.hex()}")
                     else:
                         # 충분한 데이터가 없을 경우 잠시 대기
-                        await asyncio.sleep(0.1)
+                        await asyncio.sleep(0.01)
         except websockets.exceptions.ConnectionClosed as e:
             logging.error(f"WebSocket 연결이 종료되었습니다: {e}")
         except Exception as e:
